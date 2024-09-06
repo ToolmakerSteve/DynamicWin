@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Management;
 
@@ -96,15 +97,17 @@ namespace DynamicWin.UI.Menu.Menus
 
     static class WindowsSettingsBrightnessController
     {
+	    private static long _iCall;
         static bool notSupported = false;
 
         public static int Get()
         {
-            if(notSupported)
+			if (notSupported)
                 return 100;
-
-            try
-            {
+			
+			Debug.WriteLine($"WindowsSettingsBrightnessController #{_iCall++}");
+			try
+			{
                 using var mclass = new ManagementClass("WmiMonitorBrightness")
                 {
                     Scope = new ManagementScope(@"\\.\root\wmi")
@@ -118,11 +121,25 @@ namespace DynamicWin.UI.Menu.Menus
             }catch(System.Management.ManagementException e)
             {
                 notSupported = true;
-                return 100;
+                //ttttt return 100;
             }
-        }
+            
+            {
+	            using var mclass = new ManagementClass("WmiMonitorBrightness")
+	            {
+		            Scope = new ManagementScope(@"\\.\root\wmi")
+	            };
+	            using var instances = mclass.GetInstances();
+	            foreach (ManagementObject instance in instances)
+	            {
+		            return (byte)instance.GetPropertyValue("CurrentBrightness");
+	            }
+	            return 0;
+			}
 
-        public static void Set(int brightness)
+		}
+
+		public static void Set(int brightness)
         {
             try
             {

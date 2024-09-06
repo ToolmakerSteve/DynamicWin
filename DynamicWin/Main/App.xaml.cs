@@ -89,7 +89,12 @@ namespace DynamicWin
 
             Settings.InitializeSettings();
             UpdateStartup();
-
+            
+            //Task.Run(() =>
+            //{
+	           // bool onUIThread = MainForm.OnUIThread();
+	           // int dummy = 0;
+            //});
             MainForm mainForm = new MainForm();
             mainForm.Show();
         }

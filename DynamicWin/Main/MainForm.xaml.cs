@@ -7,7 +7,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Forms = System.Windows.Forms;
+using SW = System.Windows;
 
 namespace DynamicWin.Main
 {
@@ -23,62 +25,74 @@ namespace DynamicWin.Main
         private DateTime _lastRenderTime;
         private readonly TimeSpan _targetElapsedTime = TimeSpan.FromMilliseconds(16); // ~60 FPS
 
-        public Action onMainFormRender;
+        public Action? onMainFormRender;
 
         public MainForm()
         {
+	        instance = this;
             InitializeComponent();
-
+            
             _trayIcon = new Forms.NotifyIcon();
-
-            CompositionTarget.Rendering += OnRendering;
-
-            instance = this;
-
-            this.WindowStyle = WindowStyle.None;
-            this.WindowState = WindowState.Maximized;
-            this.ResizeMode = ResizeMode.NoResize;
-            this.Topmost = true;
-            this.AllowsTransparency = true;
-            this.ShowInTaskbar = false;
-            this.Title = "DynamicWin Overlay";
-
-            SetMonitor(Settings.ScreenIndex);
-
-            AddRenderer();
-
-            Res.extensions.ForEach((x) => x.LoadExtension());
-            MainForm.Instance.AllowDrop = true;
-
-            // Tray icon
-
-            _trayIcon.Icon = new System.Drawing.Icon("Resources/icons/TrayIcon.ico");
-            _trayIcon.Text = "DynamicWin";
-
-            _trayIcon.ContextMenuStrip = new Forms.ContextMenuStrip();
-
-            _trayIcon.ContextMenuStrip.Items.Add("Restart Control", null, (x, y) =>
-            {
-                if (RendererMain.Instance != null) RendererMain.Instance.Destroy();
-                this.Content = new Grid();
-
-                AddRenderer();
-            });
-
-            _trayIcon.ContextMenuStrip.Items.Add("Settings", null, (x, y) =>
-            {
-                MenuManager.OpenMenu(new SettingsMenu());
-            });
-
-            _trayIcon.ContextMenuStrip.Items.Add("Exit", null, (x, y) =>
-            {
-                SaveManager.SaveAll();
-                Process.GetCurrentProcess().Kill();
-            });
-
-            _trayIcon.Visible = true;
+			Init();
         }
-
+        private void Init()
+        {
+			// Hack way to make sure it runs on UI thread, but slightly later.
+	        Task.Run(() =>
+	        {
+				Thread.Sleep(1000);
+		        Application.Current.Dispatcher.Invoke(_Init);
+	        });
+        }
+        private void _Init()
+        {
+			// TBD: Adding AFTER everything is ready might be safer.
+	        CompositionTarget.Rendering += OnRendering;
+	        
+	        //this.WindowStyle = WindowStyle.None;
+	        //this.WindowState = WindowState.Maximized;
+	        this.ResizeMode = ResizeMode.NoResize;
+	        this.Topmost = true;
+	        this.AllowsTransparency = true;
+	        this.ShowInTaskbar = false;
+	        this.Title = "DynamicWin Overlay";
+	        
+	        SetMonitor(Settings.ScreenIndex);
+	        
+	        AddRenderer();
+	        
+	        Res.extensions.ForEach((x) => x.LoadExtension());
+	        MainForm.Instance.AllowDrop = true;
+	        
+	        // Tray icon
+	        
+	        _trayIcon.Icon = new System.Drawing.Icon("Resources/icons/TrayIcon.ico");
+	        _trayIcon.Text = "DynamicWin";
+	        
+	        _trayIcon.ContextMenuStrip = new Forms.ContextMenuStrip();
+	        
+	        _trayIcon.ContextMenuStrip.Items.Add("Restart Control", null, (x, y) =>
+	        {
+		        if (RendererMain.Instance != null) RendererMain.Instance.Destroy();
+		        this.Content = new Grid();
+		        
+		        AddRenderer();
+	        });
+	        
+	        _trayIcon.ContextMenuStrip.Items.Add("Settings", null, (x, y) =>
+	        {
+		        MenuManager.OpenMenu(new SettingsMenu());
+	        });
+	        
+	        _trayIcon.ContextMenuStrip.Items.Add("Exit", null, (x, y) =>
+	        {
+		        SaveManager.SaveAll();
+		        Process.GetCurrentProcess().Kill();
+	        });
+	        
+	        _trayIcon.Visible = true;
+        }
+        
         public void SetMonitor(int monitorIndex)
         {
             var screen = System.Windows.Forms.Screen.AllScreens[Math.Clamp(monitorIndex, 0, GetMonitorCount() - 1)];
@@ -115,7 +129,7 @@ namespace DynamicWin.Main
             {
                 _lastRenderTime = currentTime;
 
-                onMainFormRender.Invoke();
+                onMainFormRender?.Invoke();
             }
         }
 
@@ -125,7 +139,9 @@ namespace DynamicWin.Main
         {
             onScrollEvent?.Invoke(e);
         }
-
+        
+        public static bool OnUIThread() => (Dispatcher.FromThread(Thread.CurrentThread) == Application.Current.Dispatcher);
+        
         public void AddRenderer()
         {
             if (RendererMain.Instance != null) RendererMain.Instance.Destroy();

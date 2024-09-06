@@ -75,6 +75,9 @@ namespace DynamicWin.Resources
         {
             homeMenu = new HomeMenu();
         }
+        
+        private const string IconsDir = "Resources\\icons\\";
+        private const string WeatherDir = IconsDir + "weather\\";
 
         public static void Load()
         {
@@ -116,11 +119,12 @@ namespace DynamicWin.Resources
 
             Location = LoadImg("Resources\\icons\\home\\Location.png");
             Weather = LoadImg("Resources\\icons\\home\\Weather.png");
-            Cloudy = LoadImg("Resources\\icons\\weather\\Cloudy.png");
+            
+            Cloudy = LoadImg(WeatherDir + "Cloudy.png");
             Sunny = LoadImg("Resources\\icons\\weather\\Sunny.png");
             Rainy = LoadImg("Resources\\icons\\weather\\Rainy.png");
             Windy = LoadImg("Resources\\icons\\weather\\Windy.png");
-            Thunderstorm = LoadImg("Resources\\weather\\home\\Thunderstorm.png");
+            Thunderstorm = LoadImg(WeatherDir + "Thunderstorm.png");
             Foggy = LoadImg("Resources\\icons\\weather\\Foggy.png");
             Snowy = LoadImg("Resources\\icons\\weather\\Snowy.png");
             SevereWeatherWarning = LoadImg("Resources\\icons\\weather\\SevereWeatherWarning.png");

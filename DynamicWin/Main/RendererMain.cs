@@ -21,9 +21,13 @@ namespace DynamicWin.Main
 {
     public class RendererMain : SKElement
     {
-        //private DispatcherTimer timer;
+	    protected override void OnRenderSizeChanged(System.Windows.SizeChangedInfo sizeInfo)
+	    {
+			base.OnRenderSizeChanged(sizeInfo);
+	    }
+		//private DispatcherTimer timer;
 
-        private IslandObject islandObject;
+		private IslandObject islandObject;
         public IslandObject MainIsland { get => islandObject; }
 
         private List<UIObject> objects { get => MenuManager.Instance.ActiveMenu.UiObjects; }
@@ -223,75 +227,101 @@ namespace DynamicWin.Main
             var gpuSurface = SKSurface.Create(Context, true, new SKImageInfo(width, height));
             return gpuSurface;
         }*/
-
+	    
+	    private bool _isPainting;
+	    
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
         {
             base.OnPaintSurface(e);
 
-            if (!isInitialized) return;
-
-            // Render
-
-            // Get the canvas and information about the surface
-            SKSurface surface = e.Surface;
-            SKCanvas canvas = surface.Canvas;
-            SKImageInfo info = e.Info;
-
-            canvas.Clear(SKColors.Transparent);
-
-            // Fix screen scale
-            double dpiFactor = System.Windows.PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice.M11;
-            canvas.Scale((float)dpiFactor, (float)dpiFactor, 0, 0);
-
-            canvasWithoutClip = canvas.Save();
-
-            if(islandObject.maskInToIsland) Mask(canvas);
-            islandObject.DrawCall(canvas);
-
-            if (MainIsland.hidden) return;
-
-            bool hasContextMenu = false;
-            foreach (UIObject uiObject in objects)
+            if (!isInitialized)
+	            return;
+            
+            if (_isPainting)
+	            return;
+            _isPainting = true;
+            try
             {
-                canvas.RestoreToCount(canvasWithoutClip);
-                canvasWithoutClip = canvas.Save();
-
-                if(uiObject.IsHovering && uiObject.GetContextMenu() != null)
-                {
-                    hasContextMenu = true;
-                    var contextMenu = uiObject.GetContextMenu();
-                    ContextMenu = contextMenu;
-                }
-
-                foreach(UIObject obj in uiObject.LocalObjects)
-                {
-                    if (obj.IsHovering && obj.GetContextMenu() != null)
-                    {
-                        hasContextMenu = true;
-                        var contextMenu = obj.GetContextMenu();
-                        ContextMenu = contextMenu;
-                    }
-                }
-
-                if (uiObject.maskInToIsland)
-                {
-                    Mask(canvas);
-                }
-
-                canvas.Scale(scaleOffset.X, scaleOffset.Y, islandObject.Position.X + islandObject.Size.X / 2, islandObject.Position.Y + islandObject.Size.Y / 2);
-
-                canvas.Translate(renderOffset.X, renderOffset.Y);
-                uiObject.DrawCall(canvas);
+	            _OnPaint(e);
             }
-
-            onDraw?.Invoke(canvas);
-
-            if (!hasContextMenu) ContextMenu = null;
-
-            canvas.Flush();
+            catch (Exception ex)
+            {
+	            Debug.WriteLine("OnPaintSurface: {0}", ex);
+            }
+			finally
+            {
+	            _isPainting = false;
+	            
+            }
         }
+        // CAUTION: Only call from OnPaintSurface.
+        private void _OnPaint(SKPaintSurfaceEventArgs e)
+        {
+	        bool onUIThread = MainForm.OnUIThread();
+			// Render
 
-        void SetRenderScale(SKCanvas canvas, float scale, Vec2 point = null)
+			// Get the canvas and information about the surface
+			SKSurface surface = e.Surface;
+			SKCanvas canvas = surface.Canvas;
+			SKImageInfo info = e.Info;
+
+			canvas.Clear(SKColors.Transparent);
+
+			// Fix screen scale
+			double dpiFactor = System.Windows.PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice.M11;
+			canvas.Scale((float)dpiFactor, (float)dpiFactor, 0, 0);
+
+			canvasWithoutClip = canvas.Save();
+
+			if (islandObject.maskInToIsland) Mask(canvas);
+			islandObject.DrawCall(canvas);
+
+			if (MainIsland.hidden)
+				return;
+
+			bool hasContextMenu = false;
+			foreach (UIObject uiObject in objects)
+			{
+				canvas.RestoreToCount(canvasWithoutClip);
+				canvasWithoutClip = canvas.Save();
+
+				if (uiObject.IsHovering && uiObject.GetContextMenu() != null)
+				{
+					hasContextMenu = true;
+					var contextMenu = uiObject.GetContextMenu();
+					ContextMenu = contextMenu;
+				}
+
+				foreach (UIObject obj in uiObject.LocalObjects)
+				{
+					if (obj.IsHovering && obj.GetContextMenu() != null)
+					{
+						hasContextMenu = true;
+						var contextMenu = obj.GetContextMenu();
+						ContextMenu = contextMenu;
+					}
+				}
+
+				if (uiObject.maskInToIsland)
+				{
+					Mask(canvas);
+				}
+
+				canvas.Scale(scaleOffset.X, scaleOffset.Y, islandObject.Position.X + islandObject.Size.X / 2, islandObject.Position.Y + islandObject.Size.Y / 2);
+
+				canvas.Translate(renderOffset.X, renderOffset.Y);
+				uiObject.DrawCall(canvas);
+			}
+
+			onDraw?.Invoke(canvas);
+
+			if (!hasContextMenu) ContextMenu = null;
+
+			canvas.Flush();
+		}
+
+
+		void SetRenderScale(SKCanvas canvas, float scale, Vec2 point = null)
         {
             if (point == null) point = new Vec2(MainIsland.Position.X + MainIsland.currSize.X / 2, 0);
             canvas.Scale(scale, scale, point.X, point.Y);

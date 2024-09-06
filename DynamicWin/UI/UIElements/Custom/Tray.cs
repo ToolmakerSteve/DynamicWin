@@ -332,6 +332,8 @@ namespace DynamicWin.UI.UIElements.Custom
 
             return Directory.GetFiles(dirPath);
         }
+        
+        public static int FileCount => (GetFiles() is { } files ? files.Length : 0);
 
         public static void AddFiles(string[] files)
         {
