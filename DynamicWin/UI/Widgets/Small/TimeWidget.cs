@@ -97,7 +97,7 @@ namespace DynamicWin.UI.Widgets.Small
 
         string GetTime()
         {
-            return RegisterTimeWidgetSettings.saveData.militaryTime ? DateTime.Now.ToString("HH:mm") : DateTime.Now.ToString("hh:mm tt", new System.Globalization.CultureInfo("en-US"));
+            return RegisterTimeWidgetSettings.saveData.militaryTime ? DateTime.Now.ToString("HH:mm:ss") : DateTime.Now.ToString("hh:mm:ss tt", new System.Globalization.CultureInfo("en-US"));
         }
     }
 }

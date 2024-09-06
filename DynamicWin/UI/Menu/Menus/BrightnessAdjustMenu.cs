@@ -115,28 +115,15 @@ namespace DynamicWin.UI.Menu.Menus
                 using var instances = mclass.GetInstances();
                 foreach (ManagementObject instance in instances)
                 {
-                    return (byte)instance.GetPropertyValue("CurrentBrightness");
+	                return (byte)instance.GetPropertyValue("CurrentBrightness");
                 }
+                notSupported = true;
                 return 0;
             }catch(System.Management.ManagementException e)
             {
                 notSupported = true;
-                //ttttt return 100;
+                return 100;
             }
-            
-            {
-	            using var mclass = new ManagementClass("WmiMonitorBrightness")
-	            {
-		            Scope = new ManagementScope(@"\\.\root\wmi")
-	            };
-	            using var instances = mclass.GetInstances();
-	            foreach (ManagementObject instance in instances)
-	            {
-		            return (byte)instance.GetPropertyValue("CurrentBrightness");
-	            }
-	            return 0;
-			}
-
 		}
 
 		public static void Set(int brightness)

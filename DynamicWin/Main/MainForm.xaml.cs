@@ -25,14 +25,24 @@ namespace DynamicWin.Main
         private DateTime _lastRenderTime;
         private readonly TimeSpan _targetElapsedTime = TimeSpan.FromMilliseconds(16); // ~60 FPS
 
-        public Action? onMainFormRender;
+        public Action onMainFormRender;
 
         public MainForm()
         {
 	        instance = this;
             InitializeComponent();
             
-            _trayIcon = new Forms.NotifyIcon();
+            this.WindowStyle = WindowStyle.None;
+            //this.WindowState = WindowState.Maximized;
+            this.ResizeMode = ResizeMode.NoResize;
+            this.Topmost = true;
+            this.AllowsTransparency = true;
+            this.ShowInTaskbar = false;
+            this.Title = "DynamicWin Overlay";
+            
+            SetMonitor(Settings.ScreenIndex);
+
+			_trayIcon = new Forms.NotifyIcon();
 			Init();
         }
         private void Init()
@@ -48,16 +58,6 @@ namespace DynamicWin.Main
         {
 			// TBD: Adding AFTER everything is ready might be safer.
 	        CompositionTarget.Rendering += OnRendering;
-	        
-	        //this.WindowStyle = WindowStyle.None;
-	        //this.WindowState = WindowState.Maximized;
-	        this.ResizeMode = ResizeMode.NoResize;
-	        this.Topmost = true;
-	        this.AllowsTransparency = true;
-	        this.ShowInTaskbar = false;
-	        this.Title = "DynamicWin Overlay";
-	        
-	        SetMonitor(Settings.ScreenIndex);
 	        
 	        AddRenderer();
 	        
@@ -129,7 +129,10 @@ namespace DynamicWin.Main
             {
                 _lastRenderTime = currentTime;
 
-                onMainFormRender?.Invoke();
+				if (onMainFormRender == null)
+				{}
+				else
+	                onMainFormRender.Invoke();
             }
         }
 
@@ -144,7 +147,9 @@ namespace DynamicWin.Main
         
         public void AddRenderer()
         {
-            if (RendererMain.Instance != null) RendererMain.Instance.Destroy();
+	        bool ok = OnUIThread();
+
+			if (RendererMain.Instance != null) RendererMain.Instance.Destroy();
 
             var customControl = new RendererMain();
             
